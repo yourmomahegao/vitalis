@@ -178,8 +178,6 @@ func CollectCPUInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	log.Printf("CPUInfo: %v", info)
-
 	return nil
 }
 
@@ -208,7 +206,26 @@ func CollectRAMInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	log.Printf("RAMInfo: %v", info)
+	_, err = database.Database.Exec(`delete from vitalis.public.info_ram 
+										where id in (select 
+														id from (select row_number() over (order by id desc) as id_rn, 
+														id 
+													from vitalis.public.info_ram) 
+														where id_rn > $1)`, enviroment.Env.MaxInfoRowsAmount-1)
+	if err != nil {
+		log.Printf("Error while deleting old RAM info in CollectRAMInfoTask(): %v", err)
+		return err
+	}
+
+	_, err = database.Database.Exec(`insert into vitalis.public.info_ram
+										(total, used, free, commited, cached)
+									values
+										($1, $2, $3, $4, $5)`, info.Total, info.Used, info.Free, info.Commited, info.Cached)
+
+	if err != nil {
+		log.Printf("Error while inseting RAM info in CollectRAMInfoTask(): %v", err)
+		return err
+	}
 
 	return nil
 }
