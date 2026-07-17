@@ -43,7 +43,7 @@ services:
       REDIS_ADDRESS: vitalis-redis
       REDIS_PORT: 6379
     volumes:
-      - ./.env:/app/.env:ro
+      - ./.env:/app/.env
     ports:
       - "8080:8080"
     depends_on:

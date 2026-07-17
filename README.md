@@ -46,6 +46,7 @@ cd vitalis-server
 wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/.env.example
 wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/docker-compose.yml
 cp .env.example .env
+chmod 666 .env
 docker compose up -d
 ```
 
