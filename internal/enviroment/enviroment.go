@@ -153,6 +153,6 @@ func Preload() {
 
 		writeSecretKeyToEnv(newSecretKey)
 
-		os.Exit(0)
+		os.Exit(3)
 	}
 }
