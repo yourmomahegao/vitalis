@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"errors"
 	"net/http"
 
 	"vitalis/internal/handlers/structs"
@@ -10,60 +10,60 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func getFiltersWithValues(c *gin.Context) ([]services.InfoFilter, []any, error) {
+	err := c.Request.ParseMultipartForm(32 << 20)
+	if err != nil && !errors.Is(err, http.ErrNotMultipart) && !errors.Is(err, http.ErrMissingBoundary) {
+		return nil, nil, err
+	}
+
+	filters := []services.InfoFilter{}
+	filterValues := []any{}
+
+	for argName, argValue := range c.Request.Form {
+		if len(argValue) == 0 {
+			continue
+		}
+
+		for _, filter := range services.InfoFilters {
+			if argName == filter.Name {
+				filters = append(filters, filter)
+				filterValues = append(filterValues, argValue[0])
+			}
+		}
+	}
+
+	return filters, filterValues, nil
+}
+
 func CpuInformation(c *gin.Context) {
 	tokenStatus := CheckToken(c)
 	if tokenStatus == false {
 		return
 	}
 
-	infoFilters := []services.InfoFilter{}
-	filterValues := []any{}
-
-	addFilter := func(filter services.InfoFilter) {
-		if value := c.PostForm(filter.Name); value != "" {
-			infoFilters = append(infoFilters, filter)
-			filterValues = append(filterValues, value)
-		}
+	filters, filterValues, err := getFiltersWithValues(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "Error while parsing form data from request",
+		})
+		return
 	}
 
-	addFilter(services.InfoFilters.StartDatetime)
-	addFilter(services.InfoFilters.EndDatetime)
-	addFilter(services.InfoFilters.Limit)
-	addFilter(services.InfoFilters.Offset)
-	addFilter(services.InfoFilters.CPUName)
-	addFilter(services.InfoFilters.CPUPhysicalCoresMin)
-	addFilter(services.InfoFilters.CPUPhysicalCoresMax)
-	addFilter(services.InfoFilters.CPULogicalCoresMin)
-	addFilter(services.InfoFilters.CPULogicalCoresMax)
-	addFilter(services.InfoFilters.CPUUtilizationMin)
-	addFilter(services.InfoFilters.CPUUtilizationMax)
-	addFilter(services.InfoFilters.CPUCurrentSpeedMHzMin)
-	addFilter(services.InfoFilters.CPUCurrentSpeedMHzMax)
-	addFilter(services.InfoFilters.CPUBaseSpeedMHzMin)
-	addFilter(services.InfoFilters.CPUBaseSpeedMHzMax)
-	addFilter(services.InfoFilters.CPUProcessesAmountMin)
-	addFilter(services.InfoFilters.CPUProcessesAmountMax)
-	addFilter(services.InfoFilters.CPUThreadsAmountMin)
-	addFilter(services.InfoFilters.CPUThreadsAmountMax)
-	addFilter(services.InfoFilters.CPUHandlesAmountMin)
-	addFilter(services.InfoFilters.CPUHandlesAmountMax)
-	addFilter(services.InfoFilters.CPUUptimeMin)
-	addFilter(services.InfoFilters.CPUUptimeMax)
+	infoData, err := services.GetInfoData(services.InfoTypes.CPU, filters, filterValues)
 
-	data, err := services.GetInfoData(services.InfoTypes.CPU, infoFilters, filterValues)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, structs.Response{
 			Status:  false,
 			Message: "Error while getting CPU information",
 		})
-
-		log.Printf("Error occured in CpuInformation(): %v", err)
 		return
 	}
 
 	c.JSON(http.StatusOK, structs.Response{
-		Status: true,
-		Data:   data,
+		Status:  true,
+		Message: "Access token valid",
+		Data:    infoData,
 	})
 }
 
@@ -73,9 +73,29 @@ func RamInformation(c *gin.Context) {
 		return
 	}
 
+	filters, filterValues, err := getFiltersWithValues(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "Error while parsing form data from request",
+		})
+		return
+	}
+
+	infoData, err := services.GetInfoData(services.InfoTypes.RAM, filters, filterValues)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, structs.Response{
+			Status:  false,
+			Message: "Error while getting RAM information",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
 		Message: "Access token valid",
+		Data:    infoData,
 	})
 }
 
@@ -85,9 +105,29 @@ func NetInformation(c *gin.Context) {
 		return
 	}
 
+	filters, filterValues, err := getFiltersWithValues(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "Error while parsing form data from request",
+		})
+		return
+	}
+
+	infoData, err := services.GetInfoData(services.InfoTypes.Net, filters, filterValues)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, structs.Response{
+			Status:  false,
+			Message: "Error while getting network information",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
 		Message: "Access token valid",
+		Data:    infoData,
 	})
 }
 
@@ -97,8 +137,28 @@ func FileInformation(c *gin.Context) {
 		return
 	}
 
+	filters, filterValues, err := getFiltersWithValues(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "Error while parsing form data from request",
+		})
+		return
+	}
+
+	infoData, err := services.GetInfoData(services.InfoTypes.File, filters, filterValues)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, structs.Response{
+			Status:  false,
+			Message: "Error while getting file information",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
 		Message: "Access token valid",
+		Data:    infoData,
 	})
 }
