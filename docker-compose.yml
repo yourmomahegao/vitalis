@@ -33,6 +33,7 @@ services:
 
   vitalis:
     container_name: vitalis
+    image: vitalis:lastest
     restart: unless-stopped
     env_file:
       - .env
