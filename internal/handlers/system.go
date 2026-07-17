@@ -62,7 +62,7 @@ func CpuInformation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
-		Message: "Access token valid",
+		Message: "Ok",
 		Data:    infoData,
 	})
 }
@@ -94,7 +94,7 @@ func RamInformation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
-		Message: "Access token valid",
+		Message: "Ok",
 		Data:    infoData,
 	})
 }
@@ -126,7 +126,7 @@ func NetInformation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
-		Message: "Access token valid",
+		Message: "Ok",
 		Data:    infoData,
 	})
 }
@@ -158,7 +158,7 @@ func FileInformation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, structs.Response{
 		Status:  true,
-		Message: "Access token valid",
+		Message: "Ok",
 		Data:    infoData,
 	})
 }

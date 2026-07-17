@@ -36,6 +36,8 @@ var InfoTypes = struct {
 var InfoFilters = map[string]InfoFilter{
 	"start_datetime": {Name: "start_datetime", SubQuery: "insertion_datetime >= $0", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
 	"end_datetime":   {Name: "end_datetime", SubQuery: "insertion_datetime <= $0", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
+	"limit_group":    {Name: "limit_group", SubQuery: "group_id in (select group_id from (select distinct group_id, dense_rank() over (order by group_id desc) as group_rnk from $TABLE) t where t.group_rnk <= $0)", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
+	"offset_group":   {Name: "offset_group", SubQuery: "group_id in (select group_id from (select distinct group_id, dense_rank() over (order by group_id desc) as group_rnk from $TABLE) t where t.group_rnk > $0)", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
 	"limit":          {Name: "limit", SubQuery: "limit $0", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
 	"offset":         {Name: "offset", SubQuery: "offset $0", CompatibleTypes: []InfoType{InfoTypes.CPU, InfoTypes.RAM, InfoTypes.Net, InfoTypes.File}},
 
@@ -112,14 +114,16 @@ func checkFiltersCompability(infoType InfoType, infoFilters []InfoFilter) (bool,
 	return false, fmt.Errorf("None of filters compatible with type %s", infoType.Name)
 }
 
-func compileFilters(query string, infoFilters []InfoFilter) (string, error) {
+func compileFilters(query string, infoType InfoType, infoFilters []InfoFilter) (string, error) {
 	var whereClauses []string
 	var limitClause, offsetClause string
 
 	placeholderIndex := 1
+	rawTable := strings.Fields(infoType.Table)[0]
 
 	for _, infoFilter := range infoFilters {
-		subQuery := strings.Replace(infoFilter.SubQuery, "$0", fmt.Sprintf("$%d", placeholderIndex), 1)
+		subQuery := strings.ReplaceAll(infoFilter.SubQuery, "$TABLE", rawTable)
+		subQuery = strings.Replace(subQuery, "$0", fmt.Sprintf("$%d", placeholderIndex), 1)
 		placeholderIndex++
 
 		switch infoFilter.Name {
@@ -135,6 +139,8 @@ func compileFilters(query string, infoFilters []InfoFilter) (string, error) {
 	if len(whereClauses) > 0 {
 		query += " where " + strings.Join(whereClauses, " and ")
 	}
+
+	query += " order by id desc"
 
 	if limitClause != "" {
 		query += " " + limitClause
@@ -232,7 +238,7 @@ func GetInfoData(infoType InfoType, infoFilters []InfoFilter, filterValues []any
 								*
 							from %s`, infoType.Table)
 
-	query, err := compileFilters(rawQuery, infoFilters)
+	query, err := compileFilters(rawQuery, infoType, infoFilters)
 
 	if err != nil {
 		log.Printf("Error occured while compiling filters in GetInfoData(): %v", err)
