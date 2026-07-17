@@ -43,6 +43,7 @@ func Initialize() error {
 
 		`CREATE TABLE IF NOT EXISTS public.info_cpu (
 			id int4 GENERATED ALWAYS AS IDENTITY NOT NULL,
+			group_id int4 NOT NULL,
 			name varchar(512) NOT NULL,
 			physical_cores int4 NOT NULL,
 			logical_cores int4 NOT NULL,
@@ -58,8 +59,17 @@ func Initialize() error {
 			CONSTRAINT info_cpu_pk PRIMARY KEY (id)
 		);`,
 
+		`CREATE SEQUENCE IF NOT EXISTS public.info_cpu_group_id_seq
+			AS int4
+			START WITH 1
+			INCREMENT BY 1
+			NO MINVALUE
+			NO MAXVALUE
+			CACHE 1;`,
+
 		`CREATE TABLE IF NOT EXISTS public.info_ram (
 			id int4 GENERATED ALWAYS AS IDENTITY NOT NULL,
+			group_id int4 NOT NULL,
 			total int8 NOT NULL,
 			used int8 NOT NULL,
 			free int8 NOT NULL,
@@ -70,8 +80,17 @@ func Initialize() error {
 			CONSTRAINT info_ram_pk PRIMARY KEY (id)
 		);`,
 
+		`CREATE SEQUENCE IF NOT EXISTS public.info_ram_group_id_seq
+			AS int4
+			START WITH 1
+			INCREMENT BY 1
+			NO MINVALUE
+			NO MAXVALUE
+			CACHE 1;`,
+
 		`CREATE TABLE IF NOT EXISTS public.info_net (
 			id int4 GENERATED ALWAYS AS IDENTITY NOT NULL,
+			group_id int4 NOT NULL,
 			bytes_sent int8 NOT NULL,
 			bytes_recv int8 NOT NULL,
 			packets_sent int8 NOT NULL,
@@ -84,8 +103,17 @@ func Initialize() error {
 			CONSTRAINT info_net_pk PRIMARY KEY (id)
 		);`,
 
+		`CREATE SEQUENCE IF NOT EXISTS public.info_net_group_id_seq
+			AS int4
+			START WITH 1
+			INCREMENT BY 1
+			NO MINVALUE
+			NO MAXVALUE
+			CACHE 1;`,
+
 		`CREATE TABLE IF NOT EXISTS public.info_file (
 			id int4 GENERATED ALWAYS AS IDENTITY NOT NULL,
+			group_id int4 NOT NULL,
 			path text NOT NULL,
 			total int8 NOT NULL,
 			used int8 NOT NULL,
@@ -96,17 +124,13 @@ func Initialize() error {
 			CONSTRAINT info_file_pk PRIMARY KEY (id)
 		);`,
 
-		`CREATE TABLE IF NOT EXISTS public.info_process (
-			id int4 GENERATED ALWAYS AS IDENTITY NOT NULL,
-			pid int4 NOT NULL,
-			name varchar(512) NOT NULL,
-			cpu_percent float8 NOT NULL,
-			memory_percent float8 NOT NULL,
-			status varchar(128) NOT NULL,
-			insertion_datetime timestamp DEFAULT now() NOT NULL,
-			
-			CONSTRAINT info_process_pk PRIMARY KEY (id)
-		);`,
+		`CREATE SEQUENCE IF NOT EXISTS public.info_file_group_id_seq
+			AS int4
+			START WITH 1
+			INCREMENT BY 1
+			NO MINVALUE
+			NO MAXVALUE
+			CACHE 1;`,
 	}
 
 	for _, query := range queries {

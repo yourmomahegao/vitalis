@@ -55,14 +55,6 @@ type FileInfo struct {
 	UsedPercent float64 `json:"used_percent"`
 }
 
-type ProcessInfo struct {
-	PID           int32   `json:"pid"`
-	Name          string  `json:"name"`
-	CPUPercent    float64 `json:"cpu_percent"`
-	MemoryPercent float32 `json:"memory_percent"`
-	Status        string  `json:"status"`
-}
-
 func CollectCPUInfo() (*CPUInfo, error) {
 	info := &CPUInfo{}
 
@@ -157,21 +149,33 @@ func CollectCPUInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	_, err = database.Database.Exec(`delete from vitalis.public.info_cpu 
-										where id in (select 
-														id from (select row_number() over (order by id desc) as id_rn, 
-														id 
-													from vitalis.public.info_cpu) 
-														where id_rn > $1)`, enviroment.Env.MaxInfoRowsAmount-1)
+	var groupId int = 0
+	groupIdSeqRow := database.Database.QueryRow(`select nextval('info_cpu_group_id_seq');`)
+
+	err = groupIdSeqRow.Scan(&groupId)
+	if err != nil {
+		log.Printf("Error while getting new group_id in CollectCPUInfoTask(): %v", err)
+		return err
+	}
+
+	_, err = database.Database.Exec(`delete from public.info_cpu
+										where group_id in (
+											select group_id from (
+												select group_id,
+													dense_rank() over (order by group_id desc) as group_rnk
+												from public.info_cpu
+											) t
+											where group_rnk > $1
+										);`, enviroment.Env.MaxInfoGroupsAmount-1)
 	if err != nil {
 		log.Printf("Error while deleting old CPU info in CollectCPUInfoTask(): %v", err)
 		return err
 	}
 
-	_, err = database.Database.Exec(`insert into vitalis.public.info_cpu
-										(name, physical_cores, logical_cores, utilization, current_speed_mhz, base_speed_mhz, processes_amount, threads_amount, handles_amount, uptime)
+	_, err = database.Database.Exec(`insert into public.info_cpu
+										(group_id, name, physical_cores, logical_cores, utilization, current_speed_mhz, base_speed_mhz, processes_amount, threads_amount, handles_amount, uptime)
 									values
-										($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, info.Name, info.PhysicalCores, info.LogicalCores, info.Utilization, info.CurrentSpeedMHz, info.BaseSpeedMHz, info.ProcessesAmount, info.ThreadsAmount, info.HandlesAmount, info.Uptime)
+										($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, groupId, info.Name, info.PhysicalCores, info.LogicalCores, info.Utilization, info.CurrentSpeedMHz, info.BaseSpeedMHz, info.ProcessesAmount, info.ThreadsAmount, info.HandlesAmount, info.Uptime)
 
 	if err != nil {
 		log.Printf("Error while inseting CPU info in CollectCPUInfoTask(): %v", err)
@@ -206,21 +210,33 @@ func CollectRAMInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	_, err = database.Database.Exec(`delete from vitalis.public.info_ram 
-										where id in (select 
-														id from (select row_number() over (order by id desc) as id_rn, 
-														id 
-													from vitalis.public.info_ram) 
-														where id_rn > $1)`, enviroment.Env.MaxInfoRowsAmount-1)
+	var groupId int = 0
+	groupIdSeqRow := database.Database.QueryRow(`select nextval('info_ram_group_id_seq');`)
+
+	err = groupIdSeqRow.Scan(&groupId)
+	if err != nil {
+		log.Printf("Error while getting new group_id in CollectRAMInfoTask(): %v", err)
+		return err
+	}
+
+	_, err = database.Database.Exec(`delete from public.info_ram
+										where group_id in (
+											select group_id from (
+												select group_id,
+													dense_rank() over (order by group_id desc) as group_rnk
+												from public.info_ram
+											) t
+											where group_rnk > $1
+										);`, enviroment.Env.MaxInfoGroupsAmount-1)
 	if err != nil {
 		log.Printf("Error while deleting old RAM info in CollectRAMInfoTask(): %v", err)
 		return err
 	}
 
-	_, err = database.Database.Exec(`insert into vitalis.public.info_ram
-										(total, used, free, commited, cached)
+	_, err = database.Database.Exec(`insert into public.info_ram
+										(group_id, total, used, free, commited, cached)
 									values
-										($1, $2, $3, $4, $5)`, info.Total, info.Used, info.Free, info.Commited, info.Cached)
+										($1, $2, $3, $4, $5, $6)`, groupId, info.Total, info.Used, info.Free, info.Commited, info.Cached)
 
 	if err != nil {
 		log.Printf("Error while inseting RAM info in CollectRAMInfoTask(): %v", err)
@@ -266,13 +282,44 @@ func CollectNetInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	log.Printf("NetInfo: %v", info)
+	var groupId int = 0
+	groupIdSeqRow := database.Database.QueryRow(`select nextval('info_net_group_id_seq');`)
+
+	err = groupIdSeqRow.Scan(&groupId)
+	if err != nil {
+		log.Printf("Error while getting new group_id in CollectNetInfoTask(): %v", err)
+		return err
+	}
+
+	_, err = database.Database.Exec(`delete from public.info_net
+										where group_id in (
+											select group_id from (
+												select group_id,
+													dense_rank() over (order by group_id desc) as group_rnk
+												from public.info_net
+											) t
+											where group_rnk > $1
+										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+	if err != nil {
+		log.Printf("Error while deleting old NET info in CollectNetInfoTask(): %v", err)
+		return err
+	}
+
+	_, err = database.Database.Exec(`insert into public.info_net
+										(group_id, bytes_sent, bytes_recv, packets_sent, packets_recv, err_in, err_out, connections)
+									values
+										($1, $2, $3, $4, $5, $6, $7, $8)`, groupId, info.BytesSent, info.BytesRecv, info.PacketsSent, info.PacketsRecv, info.ErrIn, info.ErrOut, info.Connections)
+
+	if err != nil {
+		log.Printf("Error while inseting NET info in CollectNetInfoTask(): %v", err)
+		return err
+	}
 
 	return nil
 }
 
 func CollectFileInfo() ([]*FileInfo, error) {
-	partitions, err := disk.Partitions(false) // false — без псевдо-ФС (tmpfs и т.д.)
+	partitions, err := disk.Partitions(false)
 	if err != nil {
 		log.Printf("Error while getting disk partitions in CollectFileInfo(): %v", err)
 		return nil, err
@@ -306,62 +353,40 @@ func CollectFileInfoTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	log.Printf("FileInfo: %v", info)
+	var groupId int = 0
+	groupIdSeqRow := database.Database.QueryRow(`select nextval('info_file_group_id_seq');`)
 
-	return nil
-}
-
-func CollectProccessesInfo() ([]*ProcessInfo, error) {
-	procs, err := process.Processes()
+	err = groupIdSeqRow.Scan(&groupId)
 	if err != nil {
-		log.Printf("Error while getting processes in CollectProccessesInfo(): %v", err)
-		return nil, err
-	}
-
-	processInfos := make([]*ProcessInfo, 0, len(procs))
-
-	for _, p := range procs {
-		name, err := p.Name()
-		if err != nil {
-			continue
-		}
-
-		cpuPercent, err := p.CPUPercent()
-		if err != nil {
-			cpuPercent = 0
-		}
-
-		memPercent, err := p.MemoryPercent()
-		if err != nil {
-			memPercent = 0
-		}
-
-		statuses, err := p.Status()
-		status := ""
-		if err == nil && len(statuses) > 0 {
-			status = statuses[0]
-		}
-
-		processInfos = append(processInfos, &ProcessInfo{
-			PID:           p.Pid,
-			Name:          name,
-			CPUPercent:    cpuPercent,
-			MemoryPercent: memPercent,
-			Status:        status,
-		})
-	}
-
-	return processInfos, nil
-}
-
-func CollectProccessesInfoTask(ctx context.Context, t *asynq.Task) error {
-	info, err := CollectProccessesInfo()
-	if err != nil {
-		log.Printf("Error while getting processes info in CollectProccessesInfoTask(): %v", err)
+		log.Printf("Error while getting new group_id in CollectFileInfoTask(): %v", err)
 		return err
 	}
 
-	log.Printf("ProcessesInfo count: %d", len(info))
+	_, err = database.Database.Exec(`delete from public.info_file
+										where group_id in (
+											select group_id from (
+												select group_id,
+													dense_rank() over (order by group_id desc) as group_rnk
+												from public.info_file
+											) t
+											where group_rnk > $1
+										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+	if err != nil {
+		log.Printf("Error while deleting old files info in CollectFileInfoTask(): %v", err)
+		return err
+	}
+
+	for _, infoRow := range info {
+		_, err = database.Database.Exec(`insert into public.info_file
+											(group_id, path, total, used, free, used_percent)
+										values
+											($1, $2, $3, $4, $5, $6)`, groupId, infoRow.Path, infoRow.Total, infoRow.Used, infoRow.Free, infoRow.UsedPercent)
+	}
+
+	if err != nil {
+		log.Printf("Error while inseting files info in CollectFileInfoTask(): %v", err)
+		return err
+	}
 
 	return nil
 }
@@ -378,20 +403,17 @@ func CompileTasks() {
 	ramCollectTask := asynq.NewTask("ram:collect", nil)
 	netCollectTask := asynq.NewTask("net:collect", nil)
 	fileCollectTask := asynq.NewTask("file:collect", nil)
-	procCollectTask := asynq.NewTask("proc:collect", nil)
 
-	// scheduler.Register("@every 10s", cpuCollectTask, asynq.MaxRetry(3))
-	// scheduler.Register("@every 10s", ramCollectTask, asynq.MaxRetry(3))
-	// scheduler.Register("@every 10s", netCollectTask, asynq.MaxRetry(3))
-	// scheduler.Register("@every 10s", fileCollectTask, asynq.MaxRetry(3))
-	// scheduler.Register("@every 10s", procCollectTask, asynq.MaxRetry(3))
+	scheduler.Register("@every 10s", cpuCollectTask, asynq.MaxRetry(3))
+	scheduler.Register("@every 10s", ramCollectTask, asynq.MaxRetry(3))
+	scheduler.Register("@every 10s", netCollectTask, asynq.MaxRetry(3))
+	scheduler.Register("@every 10s", fileCollectTask, asynq.MaxRetry(3))
 
 	// Intial tasks
 	client.Enqueue(cpuCollectTask)
 	client.Enqueue(ramCollectTask)
 	client.Enqueue(netCollectTask)
 	client.Enqueue(fileCollectTask)
-	client.Enqueue(procCollectTask)
 
 	// Worker
 	srv := asynq.NewServer(asynq.RedisClientOpt{Addr: "localhost:6379"}, asynq.Config{Concurrency: 10})
@@ -400,7 +422,6 @@ func CompileTasks() {
 	mux.HandleFunc("ram:collect", CollectRAMInfoTask)
 	mux.HandleFunc("net:collect", CollectNetInfoTask)
 	mux.HandleFunc("file:collect", CollectFileInfoTask)
-	mux.HandleFunc("proc:collect", CollectProccessesInfoTask)
 
 	go scheduler.Run()
 	go srv.Run(mux)

@@ -22,7 +22,7 @@ type EnviromentStruct struct {
 	SecretKey string
 
 	AccessTokenLifetimeMinutes int
-	MaxInfoRowsAmount          int
+	MaxInfoGroupsAmount        int
 	MaxSessionKeysAmount       int
 }
 
@@ -85,23 +85,23 @@ func Preload() {
 		log.Printf("RUN_ADDRESS not defined, using 0.0.0.0:8080")
 	}
 
-	// ========== MAX_INFO_ROWS_AMOUNT ==========
+	// ========== MAX_INFO_GROUPS_AMOUNT ==========
 
-	maxInfoRowsAmount := 10000
-	maxInfoRowsAmountRaw := os.Getenv("MAX_INFO_ROWS_AMOUNT")
+	maxInfoGroupsAmount := 1000
+	maxInfoGroupsAmountRaw := os.Getenv("MAX_INFO_GROUPS_AMOUNT")
 
-	if maxInfoRowsAmountRaw == "" {
-		log.Printf("MAX_INFO_ROWS_AMOUNT not defined, using default (10000).")
+	if maxInfoGroupsAmountRaw == "" {
+		log.Printf("MAX_INFO_GROUPS_AMOUNT not defined, using default (1000).")
 	} else {
 		var err error
-		maxInfoRowsAmount, err = strconv.Atoi(maxInfoRowsAmountRaw)
+		maxInfoGroupsAmount, err = strconv.Atoi(maxInfoGroupsAmountRaw)
 
 		if err != nil {
-			log.Printf("MAX_INFO_ROWS_AMOUNT is invalid, using default (10000).")
+			log.Printf("MAX_INFO_GROUPS_AMOUNT is invalid, using default (1000).")
 		}
 	}
 
-	Env.MaxInfoRowsAmount = maxInfoRowsAmount
+	Env.MaxInfoGroupsAmount = maxInfoGroupsAmount
 
 	// ========== MAX_SESSION_KEYS_AMOUNT ==========
 
