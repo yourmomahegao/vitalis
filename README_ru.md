@@ -47,6 +47,9 @@ wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/.en
 wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/docker-compose.yml
 cp .env.example .env
 chmod 666 .env
+```
+
+```bash
 docker compose up -d
 ```
 
