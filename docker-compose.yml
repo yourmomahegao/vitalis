@@ -33,9 +33,6 @@ services:
 
   vitalis:
     container_name: vitalis
-    build:
-      context: .
-      dockerfile: internal/deployments/Dockerfile
     restart: unless-stopped
     env_file:
       - .env

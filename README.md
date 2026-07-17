@@ -40,8 +40,16 @@ Each collection cycle gets its own `group_id` (from a dedicated Postgres sequenc
 ## Quick start (Docker Compose)
 
 ```bash
+mkdir vitalis-server
+cd vitalis-server
+
+wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/.env.example
+wget https://raw.githubusercontent.com/yourmomahegao/vitalis/refs/heads/main/docker-compose.yml
+docker pull yourmomahegao/vitalis:latest
+
+# CHANGE DATABASE PASSWORD INSIDE .env FILE
 cp .env.example .env
-# fill in DATABASE_PASSWORD; SECRET_KEY can be left empty — it will be generated automatically
+
 docker compose up -d
 ```
 
