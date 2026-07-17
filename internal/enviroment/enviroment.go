@@ -57,12 +57,12 @@ func getIntEnviromentVariable(name string, defaultValue int) int {
 	variable := defaultValue
 
 	if variableRaw == "" {
-		log.Printf("%s enviroment variable not defined, using %s", name, defaultValue)
+		log.Printf("%s enviroment variable not defined, using %d", name, defaultValue)
 	} else {
 		variableConverted, err := strconv.Atoi(variableRaw)
 
 		if err != nil {
-			log.Printf("%s enviroment variable is invalid, using %s", name, defaultValue)
+			log.Printf("%s enviroment variable is invalid, using %d", name, defaultValue)
 		} else {
 			variable = variableConverted
 		}
