@@ -71,6 +71,26 @@ Application logs:
 make docker-logs
 ```
 
+### Troubleshooting: `password authentication failed for user "vitalis_user"`
+
+Postgres only applies `POSTGRES_PASSWORD` the **first** time it initializes its data directory. If `vitalis-postgres` was ever started with the default `.env.example` password (or any password) before you changed `DATABASE_PASSWORD`, the `postgres_data` volume already has that old password baked in — editing `.env` afterward doesn't change it, so the app fails to authenticate.
+
+Fix, depending on whether the existing data is disposable:
+
+```bash
+# A. No data to keep — wipe the volume and let Postgres re-init with the current .env password
+docker compose down
+docker volume rm vitalis-server_postgres_data   # check exact name with: docker volume ls
+docker compose up -d
+```
+
+```bash
+# B. Keep the data — update the password inside Postgres to match .env instead
+docker compose exec vitalis-postgres psql -U vitalis_user -d vitalis \
+  -c "ALTER USER vitalis_user WITH PASSWORD '<value of DATABASE_PASSWORD in .env>';"
+docker compose up -d vitalis
+```
+
 ## Running locally without Docker
 
 ```bash

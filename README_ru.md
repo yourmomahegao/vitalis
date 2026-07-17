@@ -71,6 +71,26 @@ Compose поднимает три сервиса:
 make docker-logs
 ```
 
+### Устранение неполадок: `password authentication failed for user "vitalis_user"`
+
+Postgres применяет `POSTGRES_PASSWORD` только при **первой** инициализации директории данных. Если `vitalis-postgres` хоть раз запускался с паролем из `.env.example` (или любым другим) до того, как вы поменяли `DATABASE_PASSWORD`, то в volume `postgres_data` уже "зашит" старый пароль — правка `.env` после этого ничего не меняет, и приложение не может авторизоваться.
+
+Исправление зависит от того, нужны ли вам существующие данные:
+
+```bash
+# A. Данные не нужны — удаляем volume, Postgres переинициализируется с текущим паролем из .env
+docker compose down
+docker volume rm vitalis-server_postgres_data   # точное имя смотрите через: docker volume ls
+docker compose up -d
+```
+
+```bash
+# Б. Данные нужно сохранить — меняем пароль внутри Postgres, чтобы он совпадал с .env
+docker compose exec vitalis-postgres psql -U vitalis_user -d vitalis \
+  -c "ALTER USER vitalis_user WITH PASSWORD '<значение DATABASE_PASSWORD из .env>';"
+docker compose up -d vitalis
+```
+
 ## Локальный запуск без Docker
 
 ```bash
