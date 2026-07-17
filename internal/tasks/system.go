@@ -356,7 +356,7 @@ func CollectFileInfoTask(ctx context.Context, t *asynq.Task) error {
 
 func CompileTasks() {
 	// Producer
-	redisOpt := asynq.RedisClientOpt{Addr: enviroment.ENV.REDIS_ADDRESS}
+	redisOpt := asynq.RedisClientOpt{Addr: fmt.Sprintf("%s:%d", enviroment.ENV.REDIS_ADDRESS, enviroment.ENV.REDIS_PORT)}
 	client := asynq.NewClient(redisOpt)
 
 	scheduler := asynq.NewScheduler(redisOpt, nil)
@@ -379,7 +379,7 @@ func CompileTasks() {
 	client.Enqueue(fileCollectTask)
 
 	// Worker
-	srv := asynq.NewServer(asynq.RedisClientOpt{Addr: enviroment.ENV.REDIS_ADDRESS}, asynq.Config{Concurrency: 10})
+	srv := asynq.NewServer(asynq.RedisClientOpt{Addr: fmt.Sprintf("%s:%d", enviroment.ENV.REDIS_ADDRESS, enviroment.ENV.REDIS_PORT)}, asynq.Config{Concurrency: 10})
 	mux := asynq.NewServeMux()
 	mux.HandleFunc("cpu:collect", CollectCPUInfoTask)
 	mux.HandleFunc("ram:collect", CollectRAMInfoTask)

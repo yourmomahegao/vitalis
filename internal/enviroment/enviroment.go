@@ -15,6 +15,7 @@ type EnviromentStruct struct {
 	GIN_DEBUG bool
 
 	REDIS_ADDRESS string
+	REDIS_PORT    int
 
 	DATABASE_ADDRESS  string
 	DATABASE_PORT     int
@@ -120,7 +121,8 @@ func Preload() {
 
 	ENV.GIN_DEBUG = getBoolEnviromentVariable("GIN_DEBUG", false)
 
-	ENV.REDIS_ADDRESS = getStringEnviromentVariable("REDIS_ADDRESS", "localhost:6379")
+	ENV.REDIS_ADDRESS = getStringEnviromentVariable("REDIS_ADDRESS", "localhost")
+	ENV.REDIS_PORT = getIntEnviromentVariable("REDIS_PORT", 6379)
 
 	ENV.DATABASE_ADDRESS = getStringEnviromentVariable("DATABASE_ADDRESS", "localhost")
 	ENV.DATABASE_PORT = getIntEnviromentVariable("DATABASE_PORT", 5432)
