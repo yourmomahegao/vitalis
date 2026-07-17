@@ -34,10 +34,24 @@ func main() {
 	// ========== GIN INITIALIZATION ==========
 	ginEngine := gin.Default()
 
+	if enviroment.ENV.GIN_DEBUG {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	// ========== GIN URLS ==========
+	ginEngine.GET("/worker/status/", handlers.WorkerStatus)
+
+	// ========== GIN URLS AUTH ==========
 	ginEngine.GET("/auth/token/", handlers.AccessToken)
 	ginEngine.GET("/auth/token/check/", handlers.AccessTokenCheck)
-	ginEngine.POST("/worker/status/", handlers.WorkerStatus)
+
+	// ========== GIN URLS SYSTEM ==========
+	ginEngine.POST("/info/system/cpu/", handlers.CpuInformation)
+	ginEngine.POST("/info/system/ram/", handlers.RamInformation)
+	ginEngine.POST("/info/system/net/", handlers.NetInformation)
+	ginEngine.POST("/info/system/file/", handlers.FileInformation)
 
 	// ========== GIN RUN ==========
 	if err := ginEngine.Run(enviroment.ENV.RUN_ADDRESS); err != nil {

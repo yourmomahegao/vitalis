@@ -6,11 +6,16 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type EnviromentStruct struct {
+	GIN_DEBUG bool
+
+	REDIS_ADDRESS string
+
 	DATABASE_ADDRESS  string
 	DATABASE_PORT     int
 	DATABASE_NAME     string
@@ -33,6 +38,30 @@ type EnviromentStruct struct {
 
 var ENV EnviromentStruct
 
+func writeSecretKeyToEnv(newSecretKey string) error {
+	fileDataRaw, err := os.ReadFile("./.env")
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(fileDataRaw), "\n")
+	found := false
+
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "SECRET_KEY=") {
+			lines[i] = "SECRET_KEY=" + newSecretKey
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		lines = append(lines, "SECRET_KEY="+newSecretKey)
+	}
+
+	return os.WriteFile("./.env", []byte(strings.Join(lines, "\n")), 0600)
+}
+
 func generateSecureToken(length int) string {
 	b := make([]byte, length)
 	if _, err := rand.Read(b); err != nil {
@@ -47,6 +76,18 @@ func getStringEnviromentVariable(name string, defaultValue string) string {
 	if variable == "" {
 		variable = defaultValue
 		log.Printf("%s enviroment variable not defined, using %s", name, defaultValue)
+	}
+
+	return variable
+}
+
+func getBoolEnviromentVariable(name string, defaultValue bool) bool {
+	variableRaw := os.Getenv(name)
+	variable := variableRaw == "true"
+
+	if variableRaw == "" {
+		variable = defaultValue
+		log.Printf("%s enviroment variable not defined, using %t", name, defaultValue)
 	}
 
 	return variable
@@ -77,6 +118,10 @@ func Preload() {
 		log.Fatal("Error loading .env file")
 	}
 
+	ENV.GIN_DEBUG = getBoolEnviromentVariable("GIN_DEBUG", false)
+
+	ENV.REDIS_ADDRESS = getStringEnviromentVariable("REDIS_ADDRESS", "localhost:6379")
+
 	ENV.DATABASE_ADDRESS = getStringEnviromentVariable("DATABASE_ADDRESS", "localhost")
 	ENV.DATABASE_PORT = getIntEnviromentVariable("DATABASE_PORT", 5432)
 	ENV.DATABASE_NAME = getStringEnviromentVariable("DATABASE_NAME", "vitalis")
@@ -99,10 +144,13 @@ func Preload() {
 	if ENV.SECRET_KEY == "" {
 		log.Printf("SECRET_KEY not defined, generating new one...")
 
+		newSecretKey := generateSecureToken(32)
 		log.Printf("=================================")
-		log.Printf("Save and use this secret key: %s", generateSecureToken(32))
+		log.Printf("Save and use this secret key: %s", newSecretKey)
 		log.Printf("=================================")
 
-		return
+		writeSecretKeyToEnv(newSecretKey)
+
+		os.Exit(0)
 	}
 }

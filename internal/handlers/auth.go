@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"crypto/subtle"
 	"vitalis/internal/enviroment"
 	"vitalis/internal/handlers/structs"
 	"vitalis/internal/services"
@@ -14,18 +15,18 @@ import (
 )
 
 func CheckToken(c *gin.Context) bool {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Error occured in CheckToken(): %v", r)
-			c.JSON(http.StatusBadRequest, structs.Response{
-				Status:  false,
-				Message: "No authorization token present",
-			})
-			return
-		}
-	}()
-
 	bearerToken := c.Request.Header.Get("Authorization")
+	parts := strings.Split(bearerToken, " ")
+
+	if len(parts) != 2 {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "No authorization token present",
+		})
+
+		return false
+	}
+
 	reqToken := strings.Split(bearerToken, " ")[1]
 	tokenValid, err := services.CheckSessionKey(reqToken)
 
@@ -67,7 +68,7 @@ func AccessToken(c *gin.Context) {
 		return
 	}
 
-	if secretKey != enviroment.ENV.SECRET_KEY {
+	if subtle.ConstantTimeCompare([]byte(secretKey), []byte(enviroment.ENV.SECRET_KEY)) == 0 {
 		c.JSON(http.StatusUnauthorized, structs.Response{
 			Status:  false,
 			Message: "Secret key is invalid",
