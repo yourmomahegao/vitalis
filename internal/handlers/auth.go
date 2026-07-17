@@ -67,7 +67,7 @@ func AccessToken(c *gin.Context) {
 		return
 	}
 
-	if secretKey != enviroment.Env.SecretKey {
+	if secretKey != enviroment.ENV.SECRET_KEY {
 		c.JSON(http.StatusUnauthorized, structs.Response{
 			Status:  false,
 			Message: "Secret key is invalid",

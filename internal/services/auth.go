@@ -83,14 +83,14 @@ func SaveSessionKey(sessionKey string) error {
 																			id from (select row_number() over (order by id desc) as id_rn, 
 																			id 
 																		from auth_session_keys) 
-																			where id_rn > $2)`, currentTimestamp, enviroment.Env.MaxSessionKeysAmount-1)
+																			where id_rn > $2)`, currentTimestamp, enviroment.ENV.MAX_SESSION_KEYS_AMOUNT-1)
 
 	if err != nil {
 		log.Printf("Error while deleting old session keys in SaveSessionKey(): %v", err)
 		return err
 	}
 
-	validUntil := currentTimestamp.Add(time.Duration(enviroment.Env.AccessTokenLifetimeMinutes) * time.Minute)
+	validUntil := currentTimestamp.Add(time.Duration(enviroment.ENV.ACCESS_TOKEN_LIFETIME_MINUTES) * time.Minute)
 
 	_, err = database.Database.Exec(`insert into auth_session_keys 
 										(session_key, valid_until)

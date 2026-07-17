@@ -40,7 +40,7 @@ func main() {
 	ginEngine.POST("/worker/status/", handlers.WorkerStatus)
 
 	// ========== GIN RUN ==========
-	if err := ginEngine.Run(enviroment.Env.RunAddress); err != nil {
+	if err := ginEngine.Run(enviroment.ENV.RUN_ADDRESS); err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}
 }

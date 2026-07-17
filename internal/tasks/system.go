@@ -2,10 +2,12 @@ package tasks
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 	"vitalis/internal/database"
 	"vitalis/internal/enviroment"
+	"vitalis/internal/tasks/structs"
 
 	"github.com/hibiken/asynq"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -16,47 +18,8 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-type CPUInfo struct {
-	Name            string  `json:"name"`
-	PhysicalCores   int     `json:"physical_cores"`
-	LogicalCores    int     `json:"logical_cores"`
-	Utilization     float64 `json:"utilization"`
-	CurrentSpeedMHz float64 `json:"current_speed_mhz"`
-	BaseSpeedMHz    float64 `json:"base_speed_mhz"`
-	ProcessesAmount int     `json:"processes_amount"`
-	ThreadsAmount   int     `json:"threads_amount"`
-	HandlesAmount   int     `json:"handles_amount"`
-	Uptime          int64   `json:"uptime"`
-}
-
-type RAMInfo struct {
-	Total    uint64 `json:"total"`
-	Used     uint64 `json:"used"`
-	Free     uint64 `json:"free"`
-	Commited uint64 `json:"commited"`
-	Cached   uint64 `json:"cached"`
-}
-
-type NetInfo struct {
-	BytesSent   uint64 `json:"bytes_sent"`
-	BytesRecv   uint64 `json:"bytes_recv"`
-	PacketsSent uint64 `json:"packets_sent"`
-	PacketsRecv uint64 `json:"packets_recv"`
-	ErrIn       uint64 `json:"err_in"`
-	ErrOut      uint64 `json:"err_out"`
-	Connections int    `json:"connections"`
-}
-
-type FileInfo struct {
-	Path        string  `json:"path"`
-	Total       uint64  `json:"total"`
-	Used        uint64  `json:"used"`
-	Free        uint64  `json:"free"`
-	UsedPercent float64 `json:"used_percent"`
-}
-
-func CollectCPUInfo() (*CPUInfo, error) {
-	info := &CPUInfo{}
+func CollectCPUInfo() (*structs.CPUInfo, error) {
+	info := &structs.CPUInfo{}
 
 	// Name
 	cpuInfos, err := cpu.Info()
@@ -166,7 +129,7 @@ func CollectCPUInfoTask(ctx context.Context, t *asynq.Task) error {
 												from public.info_cpu
 											) t
 											where group_rnk > $1
-										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+										);`, enviroment.ENV.MAX_INFO_GROUPS_AMOUNT-1)
 	if err != nil {
 		log.Printf("Error while deleting old CPU info in CollectCPUInfoTask(): %v", err)
 		return err
@@ -185,8 +148,8 @@ func CollectCPUInfoTask(ctx context.Context, t *asynq.Task) error {
 	return nil
 }
 
-func CollectRAMInfo() (*RAMInfo, error) {
-	ramInfo := &RAMInfo{}
+func CollectRAMInfo() (*structs.RAMInfo, error) {
+	ramInfo := &structs.RAMInfo{}
 
 	memoryStat, err := mem.VirtualMemory()
 	if err != nil {
@@ -227,7 +190,7 @@ func CollectRAMInfoTask(ctx context.Context, t *asynq.Task) error {
 												from public.info_ram
 											) t
 											where group_rnk > $1
-										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+										);`, enviroment.ENV.MAX_INFO_GROUPS_AMOUNT-1)
 	if err != nil {
 		log.Printf("Error while deleting old RAM info in CollectRAMInfoTask(): %v", err)
 		return err
@@ -246,8 +209,8 @@ func CollectRAMInfoTask(ctx context.Context, t *asynq.Task) error {
 	return nil
 }
 
-func CollectNetInfo() (*NetInfo, error) {
-	netInfo := &NetInfo{}
+func CollectNetInfo() (*structs.NetInfo, error) {
+	netInfo := &structs.NetInfo{}
 
 	ioCounters, err := net.IOCounters(false) // false — суммарно по всем интерфейсам
 	if err != nil {
@@ -299,7 +262,7 @@ func CollectNetInfoTask(ctx context.Context, t *asynq.Task) error {
 												from public.info_net
 											) t
 											where group_rnk > $1
-										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+										);`, enviroment.ENV.MAX_INFO_GROUPS_AMOUNT-1)
 	if err != nil {
 		log.Printf("Error while deleting old NET info in CollectNetInfoTask(): %v", err)
 		return err
@@ -318,14 +281,14 @@ func CollectNetInfoTask(ctx context.Context, t *asynq.Task) error {
 	return nil
 }
 
-func CollectFileInfo() ([]*FileInfo, error) {
+func CollectFileInfo() ([]*structs.FileInfo, error) {
 	partitions, err := disk.Partitions(false)
 	if err != nil {
 		log.Printf("Error while getting disk partitions in CollectFileInfo(): %v", err)
 		return nil, err
 	}
 
-	fileInfos := make([]*FileInfo, 0, len(partitions))
+	fileInfos := make([]*structs.FileInfo, 0, len(partitions))
 
 	for _, partition := range partitions {
 		usage, err := disk.Usage(partition.Mountpoint)
@@ -334,7 +297,7 @@ func CollectFileInfo() ([]*FileInfo, error) {
 			continue
 		}
 
-		fileInfos = append(fileInfos, &FileInfo{
+		fileInfos = append(fileInfos, &structs.FileInfo{
 			Path:        partition.Mountpoint,
 			Total:       usage.Total,
 			Used:        usage.Used,
@@ -370,7 +333,7 @@ func CollectFileInfoTask(ctx context.Context, t *asynq.Task) error {
 												from public.info_file
 											) t
 											where group_rnk > $1
-										);`, enviroment.Env.MaxInfoGroupsAmount-1)
+										);`, enviroment.ENV.MAX_INFO_GROUPS_AMOUNT-1)
 	if err != nil {
 		log.Printf("Error while deleting old files info in CollectFileInfoTask(): %v", err)
 		return err
@@ -404,10 +367,10 @@ func CompileTasks() {
 	netCollectTask := asynq.NewTask("net:collect", nil)
 	fileCollectTask := asynq.NewTask("file:collect", nil)
 
-	scheduler.Register("@every 10s", cpuCollectTask, asynq.MaxRetry(3))
-	scheduler.Register("@every 10s", ramCollectTask, asynq.MaxRetry(3))
-	scheduler.Register("@every 10s", netCollectTask, asynq.MaxRetry(3))
-	scheduler.Register("@every 10s", fileCollectTask, asynq.MaxRetry(3))
+	scheduler.Register(fmt.Sprintf("@every %ds", enviroment.ENV.COLLECT_CPU_INFO_INTERVAL_SECONDS), cpuCollectTask, asynq.MaxRetry(3))
+	scheduler.Register(fmt.Sprintf("@every %ds", enviroment.ENV.COLLECT_RAM_INFO_INTERVAL_SECONDS), ramCollectTask, asynq.MaxRetry(3))
+	scheduler.Register(fmt.Sprintf("@every %ds", enviroment.ENV.COLLECT_NET_INFO_INTERVAL_SECONDS), netCollectTask, asynq.MaxRetry(3))
+	scheduler.Register(fmt.Sprintf("@every %ds", enviroment.ENV.COLLECT_FILE_INFO_INTERVAL_SECONDS), fileCollectTask, asynq.MaxRetry(3))
 
 	// Intial tasks
 	client.Enqueue(cpuCollectTask)

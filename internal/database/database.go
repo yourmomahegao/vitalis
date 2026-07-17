@@ -15,10 +15,10 @@ var Database *sql.DB
 func Connect() error {
 	db, err := sql.Open("postgres",
 		fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=disable",
-			enviroment.Env.DatabaseAddress,
-			enviroment.Env.DatabaseName,
-			enviroment.Env.DatabaseUser,
-			enviroment.Env.DatabasePassword))
+			enviroment.ENV.DATABASE_ADDRESS,
+			enviroment.ENV.DATABASE_NAME,
+			enviroment.ENV.DATABASE_USER,
+			enviroment.ENV.DATABASE_PASSWORD))
 
 	if err != nil {
 		log.Fatal(err)
