@@ -234,8 +234,6 @@ func GetInfoData(infoType InfoType, infoFilters []InfoFilter, filterValues []any
 
 	query, err := compileFilters(rawQuery, infoFilters)
 
-	log.Println(query)
-
 	if err != nil {
 		log.Printf("Error occured while compiling filters in GetInfoData(): %v", err)
 		return nil, err
