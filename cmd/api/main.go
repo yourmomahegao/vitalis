@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"vitalis/cmd/scss"
 	"vitalis/internal/database"
 	"vitalis/internal/enviroment"
 	"vitalis/internal/handlers"
@@ -31,6 +32,9 @@ func main() {
 		return
 	}
 
+	// ========== SCSS INTIALIZATION ==========
+	scss.CompileSCSS("internal/static/scss/", "internal/static/css/")
+
 	// ========== GIN INITIALIZATION ==========
 	ginEngine := gin.Default()
 
@@ -40,7 +44,11 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	ginEngine.LoadHTMLGlob("./internal/templates/**")
+	ginEngine.Static("/static", "./internal/static")
+
 	// ========== GIN URLS ==========
+	ginEngine.GET("/", handlers.Index)
 	ginEngine.GET("/worker/status/", handlers.WorkerStatus)
 
 	// ========== GIN URLS AUTH ==========
