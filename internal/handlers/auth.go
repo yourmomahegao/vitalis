@@ -57,6 +57,31 @@ type AccessTokenData struct {
 	ValidUntil  time.Time `json:"valid_until"`
 }
 
+func SecretKeyCheck(c *gin.Context) {
+	secretKey := c.PostForm("secret_key")
+
+	if secretKey == "" {
+		c.JSON(http.StatusBadRequest, structs.Response{
+			Status:  false,
+			Message: "secret_key parameter is not present",
+		})
+		return
+	}
+
+	if subtle.ConstantTimeCompare([]byte(secretKey), []byte(enviroment.ENV.SECRET_KEY)) == 0 {
+		c.JSON(http.StatusUnauthorized, structs.Response{
+			Status:  false,
+			Message: "Secret key is invalid",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, structs.Response{
+		Status:  true,
+		Message: "Secret key is valid",
+	})
+}
+
 func AccessToken(c *gin.Context) {
 	secretKey := c.PostForm("secret_key")
 

@@ -23,7 +23,7 @@ Vitalis — лёгкий self-hosted агент мониторинга сист�
 
 ## Как это устроено
 
-1. При старте `internal/enviroment` загружает `.env` (`godotenv`). Если `SECRET_KEY` пуст — генерируется новый 32-байтный hex-секрет, дописывается в `.env`, выводится в лог, и приложение **завершает работу** (`os.Exit(0)`). Это первичная инициализация — приложение нужно перезапустить, чтобы секрет подхватился.
+1. При старте `internal/enviroment` загружает `.env` (`godotenv`). Если `SECRET_KEY` пуст — генерируется новый 32-байтный hex-секрет, дописывается в `.env`, выводится в лог, и приложение **завершает работу** (`os.Exit(3)`). Это первичная инициализация — приложение нужно перезапустить, чтобы секрет подхватился.
 2. `internal/tasks` поднимает asynq-scheduler и asynq-worker (подключение к Redis), которые каждые `COLLECT_*_INFO_INTERVAL_SECONDS` секунд собирают метрики CPU/RAM/сети/дисков и сразу же запускают первый сбор при старте.
 3. `internal/database` открывает соединение с PostgreSQL и создаёт таблицы через `CREATE TABLE IF NOT EXISTS` (отдельного инструмента миграций нет — схема идемпотентно накатывается при каждом запуске).
 4. Поднимается Gin-сервер на `RUN_ADDRESS`, который отдаёт накопленные метрики через REST API, защищённый bearer-токенами.
@@ -120,7 +120,7 @@ air
 | `DATABASE_USER` | пользователь БД | `root` |
 | `DATABASE_PASSWORD` | пароль БД | `""` |
 | `RUN_ADDRESS` | адрес:порт, на котором слушает HTTP-сервер | `0.0.0.0:8080` |
-| `SECRET_KEY` | общий секрет для выдачи access-токенов (`/auth/token/`); при пустом значении генерируется автоматически | автогенерация |
+| `SECRET_KEY` | общий секрет для выдачи access-токенов (`/auth/token/`) и проверки через `/auth/secret/check`; при пустом значении генерируется автоматически | автогенерация |
 | `COLLECT_CPU_INFO_INTERVAL_SECONDS` | интервал сбора метрик CPU, сек | `30` |
 | `COLLECT_RAM_INFO_INTERVAL_SECONDS` | интервал сбора метрик RAM, сек | `30` |
 | `COLLECT_NET_INFO_INTERVAL_SECONDS` | интервал сбора сетевых метрик, сек | `30` |
@@ -175,12 +175,12 @@ make docker-down   # остановить и снести стек
 
 Доступ к защищённым эндпоинтам — по заголовку `Authorization: Bearer <access_token>`.
 
-**`GET /auth/token/`** — выдать новый access-токен.
+**`POST /auth/token/`** — выдать новый access-токен.
 
 Параметр `secret_key` (form-encoded поле в теле запроса) должен совпадать с `SECRET_KEY` из `.env` (сравнение constant-time).
 
 ```bash
-curl -X GET http://localhost:8080/auth/token/ \
+curl -X POST http://localhost:8080/auth/token/ \
   --data-urlencode "secret_key=<ваш SECRET_KEY>"
 ```
 
@@ -198,10 +198,21 @@ curl -X GET http://localhost:8080/auth/token/ \
 
 Коды ошибок: `400` — не передан `secret_key`; `401` — секрет не совпал; `500` — внутренняя ошибка генерации токена.
 
-**`GET /auth/token/check/`** — проверить валидность токена.
+**`POST /auth/secret/check`** — проверить `secret_key` без выдачи токена.
+
+Параметр `secret_key` (form-encoded поле в теле запроса) должен совпадать с `SECRET_KEY` из `.env` (сравнение constant-time).
 
 ```bash
-curl http://localhost:8080/auth/token/check/ \
+curl -X POST http://localhost:8080/auth/secret/check \
+  --data-urlencode "secret_key=<ваш SECRET_KEY>"
+```
+
+`200` — секретный ключ верен; `400` — не передан `secret_key`; `401` — секрет не совпал.
+
+**`POST /auth/token/check/`** — проверить валидность токена.
+
+```bash
+curl -X POST http://localhost:8080/auth/token/check/ \
   -H "Authorization: Bearer <access_token>"
 ```
 

@@ -52,8 +52,9 @@ func main() {
 	ginEngine.GET("/worker/status/", handlers.WorkerStatus)
 
 	// ========== GIN URLS AUTH ==========
-	ginEngine.GET("/auth/token/", handlers.AccessToken)
-	ginEngine.GET("/auth/token/check/", handlers.AccessTokenCheck)
+	ginEngine.POST("/auth/token/", handlers.AccessToken)
+	ginEngine.POST("/auth/secret/check", handlers.SecretKeyCheck)
+	ginEngine.POST("/auth/token/check/", handlers.AccessTokenCheck)
 
 	// ========== GIN URLS SYSTEM ==========
 	ginEngine.POST("/info/system/cpu/", handlers.CpuInformation)

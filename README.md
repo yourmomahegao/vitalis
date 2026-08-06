@@ -23,7 +23,7 @@ A background worker (asynq + Redis) periodically samples host metrics — CPU, R
 
 ## How it works
 
-1. On startup, `internal/enviroment` loads `.env` (`godotenv`). If `SECRET_KEY` is empty, a new 32-byte hex secret is generated, appended to `.env`, logged, and the application **exits** (`os.Exit(0)`). This is a first-run bootstrap step — you need to restart the app for the secret to take effect.
+1. On startup, `internal/enviroment` loads `.env` (`godotenv`). If `SECRET_KEY` is empty, a new 32-byte hex secret is generated, appended to `.env`, logged, and the application **exits** (`os.Exit(3)`). This is a first-run bootstrap step — you need to restart the app for the secret to take effect.
 2. `internal/tasks` starts an asynq scheduler and worker (connected to Redis) that collect CPU/RAM/network/disk metrics every `COLLECT_*_INFO_INTERVAL_SECONDS` seconds, and also runs an initial collection immediately at startup.
 3. `internal/database` opens a PostgreSQL connection and creates tables via `CREATE TABLE IF NOT EXISTS` (there's no separate migration tool — the schema is idempotently applied on every startup).
 4. A Gin server is started on `RUN_ADDRESS`, serving the collected metrics through a REST API protected by bearer tokens.
@@ -120,7 +120,7 @@ Defined in `.env.example` and parsed in `internal/enviroment/enviroment.go`. If 
 | `DATABASE_USER` | database user | `root` |
 | `DATABASE_PASSWORD` | database password | `""` |
 | `RUN_ADDRESS` | address:port the HTTP server listens on | `0.0.0.0:8080` |
-| `SECRET_KEY` | shared secret used to issue access tokens (`/auth/token/`); auto-generated if left empty | auto-generated |
+| `SECRET_KEY` | shared secret used to issue access tokens (`/auth/token/`) and verified via `/auth/secret/check`; auto-generated if left empty | auto-generated |
 | `COLLECT_CPU_INFO_INTERVAL_SECONDS` | CPU metric collection interval, seconds | `30` |
 | `COLLECT_RAM_INFO_INTERVAL_SECONDS` | RAM metric collection interval, seconds | `30` |
 | `COLLECT_NET_INFO_INTERVAL_SECONDS` | network metric collection interval, seconds | `30` |
@@ -175,12 +175,12 @@ All responses are JSON wrapped in a single envelope:
 
 Access to protected endpoints requires an `Authorization: Bearer <access_token>` header.
 
-**`GET /auth/token/`** — issue a new access token.
+**`POST /auth/token/`** — issue a new access token.
 
 The `secret_key` parameter (a form-encoded field in the request body) must match `SECRET_KEY` from `.env` (compared using constant-time comparison).
 
 ```bash
-curl -X GET http://localhost:8080/auth/token/ \
+curl -X POST http://localhost:8080/auth/token/ \
   --data-urlencode "secret_key=<your SECRET_KEY>"
 ```
 
@@ -198,10 +198,21 @@ curl -X GET http://localhost:8080/auth/token/ \
 
 Error codes: `400` — `secret_key` missing; `401` — secret doesn't match; `500` — internal token generation error.
 
-**`GET /auth/token/check/`** — validate an existing token.
+**`POST /auth/secret/check`** — verify a `secret_key` without issuing a token.
+
+The `secret_key` parameter (a form-encoded field in the request body) must match `SECRET_KEY` from `.env` (compared using constant-time comparison).
 
 ```bash
-curl http://localhost:8080/auth/token/check/ \
+curl -X POST http://localhost:8080/auth/secret/check \
+  --data-urlencode "secret_key=<your SECRET_KEY>"
+```
+
+`200` — secret key is valid; `400` — `secret_key` missing; `401` — secret doesn't match.
+
+**`POST /auth/token/check/`** — validate an existing token.
+
+```bash
+curl -X POST http://localhost:8080/auth/token/check/ \
   -H "Authorization: Bearer <access_token>"
 ```
 
