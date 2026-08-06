@@ -53,7 +53,7 @@ func main() {
 
 	// ========== GIN URLS AUTH ==========
 	ginEngine.POST("/auth/token/", handlers.AccessToken)
-	ginEngine.POST("/auth/secret/check", handlers.SecretKeyCheck)
+	ginEngine.POST("/auth/secret/check/", handlers.SecretKeyCheck)
 	ginEngine.POST("/auth/token/check/", handlers.AccessTokenCheck)
 
 	// ========== GIN URLS SYSTEM ==========

@@ -120,7 +120,7 @@ Defined in `.env.example` and parsed in `internal/enviroment/enviroment.go`. If 
 | `DATABASE_USER` | database user | `root` |
 | `DATABASE_PASSWORD` | database password | `""` |
 | `RUN_ADDRESS` | address:port the HTTP server listens on | `0.0.0.0:8080` |
-| `SECRET_KEY` | shared secret used to issue access tokens (`/auth/token/`) and verified via `/auth/secret/check`; auto-generated if left empty | auto-generated |
+| `SECRET_KEY` | shared secret used to issue access tokens (`/auth/token/`) and verified via `/auth/secret/check/`; auto-generated if left empty | auto-generated |
 | `COLLECT_CPU_INFO_INTERVAL_SECONDS` | CPU metric collection interval, seconds | `30` |
 | `COLLECT_RAM_INFO_INTERVAL_SECONDS` | RAM metric collection interval, seconds | `30` |
 | `COLLECT_NET_INFO_INTERVAL_SECONDS` | network metric collection interval, seconds | `30` |
@@ -198,12 +198,12 @@ curl -X POST http://localhost:8080/auth/token/ \
 
 Error codes: `400` — `secret_key` missing; `401` — secret doesn't match; `500` — internal token generation error.
 
-**`POST /auth/secret/check`** — verify a `secret_key` without issuing a token.
+**`POST /auth/secret/check/`** — verify a `secret_key` without issuing a token.
 
 The `secret_key` parameter (a form-encoded field in the request body) must match `SECRET_KEY` from `.env` (compared using constant-time comparison).
 
 ```bash
-curl -X POST http://localhost:8080/auth/secret/check \
+curl -X POST http://localhost:8080/auth/secret/check/ \
   --data-urlencode "secret_key=<your SECRET_KEY>"
 ```
 

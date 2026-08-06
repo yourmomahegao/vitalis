@@ -120,7 +120,7 @@ air
 | `DATABASE_USER` | пользователь БД | `root` |
 | `DATABASE_PASSWORD` | пароль БД | `""` |
 | `RUN_ADDRESS` | адрес:порт, на котором слушает HTTP-сервер | `0.0.0.0:8080` |
-| `SECRET_KEY` | общий секрет для выдачи access-токенов (`/auth/token/`) и проверки через `/auth/secret/check`; при пустом значении генерируется автоматически | автогенерация |
+| `SECRET_KEY` | общий секрет для выдачи access-токенов (`/auth/token/`) и проверки через `/auth/secret/check/`; при пустом значении генерируется автоматически | автогенерация |
 | `COLLECT_CPU_INFO_INTERVAL_SECONDS` | интервал сбора метрик CPU, сек | `30` |
 | `COLLECT_RAM_INFO_INTERVAL_SECONDS` | интервал сбора метрик RAM, сек | `30` |
 | `COLLECT_NET_INFO_INTERVAL_SECONDS` | интервал сбора сетевых метрик, сек | `30` |
@@ -198,12 +198,12 @@ curl -X POST http://localhost:8080/auth/token/ \
 
 Коды ошибок: `400` — не передан `secret_key`; `401` — секрет не совпал; `500` — внутренняя ошибка генерации токена.
 
-**`POST /auth/secret/check`** — проверить `secret_key` без выдачи токена.
+**`POST /auth/secret/check/`** — проверить `secret_key` без выдачи токена.
 
 Параметр `secret_key` (form-encoded поле в теле запроса) должен совпадать с `SECRET_KEY` из `.env` (сравнение constant-time).
 
 ```bash
-curl -X POST http://localhost:8080/auth/secret/check \
+curl -X POST http://localhost:8080/auth/secret/check/ \
   --data-urlencode "secret_key=<ваш SECRET_KEY>"
 ```
 
