@@ -71,11 +71,11 @@ func GenerateSecureToken(length int) string {
 	return hex.EncodeToString(b)
 }
 
-func SaveSessionKey(sessionKey string) error {
+func SaveSessionKey(sessionKey string) (*time.Time, error) {
 	currentTimestamp, err := database.GetDatabaseTime()
 	if err != nil {
 		log.Printf("Error occured in SaveSessionKey(): %v", err)
-		return err
+		return nil, err
 	}
 
 	_, err = database.Database.Exec(`delete from auth_session_keys 
@@ -87,7 +87,7 @@ func SaveSessionKey(sessionKey string) error {
 
 	if err != nil {
 		log.Printf("Error while deleting old session keys in SaveSessionKey(): %v", err)
-		return err
+		return nil, err
 	}
 
 	validUntil := currentTimestamp.Add(time.Duration(enviroment.ENV.ACCESS_TOKEN_LIFETIME_MINUTES) * time.Minute)
@@ -98,31 +98,31 @@ func SaveSessionKey(sessionKey string) error {
 
 	if err != nil {
 		log.Printf("Error while saving new session key in SaveSessionKey(): %v", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &validUntil, nil
 }
 
-func GenerateSessionKey() (string, error) {
+func GenerateSessionKey() (string, *time.Time, error) {
 	sessionKey := GenerateSecureToken(16)
 
 	uniqueStatus, err := CheckSessionKeyUnique(sessionKey)
 
 	if err != nil {
 		log.Printf("Error occured in GenerateSessionKey(): %v", err)
-		return "", err
+		return "", nil, err
 	}
 
 	if !uniqueStatus {
 		return GenerateSessionKey()
 	}
 
-	err = SaveSessionKey(sessionKey)
+	validUntil, err := SaveSessionKey(sessionKey)
 	if err != nil {
 		log.Printf("Error occured in GenerateSessionKey(): %v", err)
-		return "", err
+		return "", nil, err
 	}
 
-	return sessionKey, nil
+	return sessionKey, validUntil, nil
 }

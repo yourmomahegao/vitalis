@@ -53,8 +53,8 @@ func CheckToken(c *gin.Context) bool {
 }
 
 type AccessTokenData struct {
-	AccessToken string    `json:"access_token"`
-	ValidUntil  time.Time `json:"valid_until"`
+	AccessToken string     `json:"access_token"`
+	ValidUntil  *time.Time `json:"valid_until"`
 }
 
 func SecretKeyCheck(c *gin.Context) {
@@ -101,7 +101,7 @@ func AccessToken(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, err := services.GenerateSessionKey()
+	newAccessToken, validUntil, err := services.GenerateSessionKey()
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, structs.Response{
@@ -116,7 +116,7 @@ func AccessToken(c *gin.Context) {
 		Message: "Generated new access-token",
 		Data: AccessTokenData{
 			AccessToken: newAccessToken,
-			ValidUntil:  time.Now(),
+			ValidUntil:  validUntil,
 		},
 	})
 }
