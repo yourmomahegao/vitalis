@@ -116,7 +116,7 @@ func getIntEnviromentVariable(name string, defaultValue int) int {
 func Preload() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("No .env file found, using environment variables")
 	}
 
 	ENV.GIN_DEBUG = getBoolEnviromentVariable("GIN_DEBUG", false)
