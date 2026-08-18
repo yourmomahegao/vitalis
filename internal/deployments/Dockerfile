@@ -21,6 +21,9 @@ RUN apk add --no-cache ca-certificates && \
 WORKDIR /app
 
 COPY --from=builder /out/vitalis ./vitalis
+COPY --from=builder /src/internal/templates ./internal/templates
+COPY --from=builder /src/internal/static ./internal/static
+COPY --from=builder /src/cmd/scss/bin ./cmd/scss/bin
 
 USER vitalis
 
